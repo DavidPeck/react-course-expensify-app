@@ -1,7 +1,12 @@
 // entry -> output
 const path = require('path');
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
 
-module.exports = {
+const extractCSS = new ExtractTextPlugin('styles.css');
+module.exports = (env) => {
+const isProduction = env ===  'production';
+
+return {
     entry: './src/app.js',
     //entry: './src/playground/hoc.js',
     output: {
@@ -17,16 +22,32 @@ module.exports = {
             }, 
             {
                 test: /\.s?css$/,
-                use: [ 
-                    { loader: "style-loader" },
-                    { loader: "css-loader" }, 
-                    { loader: "sass-loader"}
-                ]
+                use: extractCSS.extract({
+                    fallback: 'style-loader',
+                    use: [ 
+                        {
+                            loader : 'css-loader' ,
+                            options: {
+                                sourceMap: true
+                            }
+                        }, 
+                        {
+                            loader: 'sass-loader',
+                            options: {
+                                sourceMap: true
+                            }
+                        }
+                          
+                    ]
+                })               
             }
         ]
     }, 
-    mode: 'development',
-    devtool: 'cheap-module-eval-source-map',
+    plugins: [
+        extractCSS
+    ],
+    mode: env ? env : 'development',
+    devtool: isProduction ? 'source-map' :  'inline-source-map',
     devServer:  {
         contentBase: path.join(__dirname ,'public'),
         historyApiFallback: true
@@ -35,5 +56,6 @@ module.exports = {
         hints: false
     }
 };
+}
 
 // loaders.
