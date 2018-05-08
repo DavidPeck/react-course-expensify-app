@@ -3,6 +3,8 @@ import thunk from 'redux-thunk';
 import { 
     startAddExpense, 
     startSetExpenses,
+    startEditExpense,
+    startRemoveExpense,
     addExpense, 
     editExpense, 
     removeExpense, 
@@ -142,3 +144,49 @@ test('should fetch the expenses from firebase', (done) => {
     });
 });
 
+test('should remove expenses from firebase', (done) => {
+    const store = createMockStore({});
+    const id = expenses[2].id;
+
+    // retreive by val.  check null, if gone, good.
+    
+    store.dispatch(startRemoveExpense({ id })).then(() => {
+        const actions = store.getActions();
+        expect(actions[0]).toEqual({
+            type: 'REMOVE_EXPENSE', 
+            id
+        });
+
+        // remove what I expected from the database
+        return database.ref(`expenses/${id}`).once('value');   
+
+    }).then((snapshot) => {
+        expect(snapshot.val()).toBeFalsy(); // null is falsy
+        done();
+    });
+});
+
+test('should edit expense from firebase', (done) => {
+    const store = createMockStore({});
+    const id = expenses[0].id;
+    const updates = {
+        amount: 999,
+        note: 'Reeeally big note!'
+    }
+
+    store.dispatch(startEditExpense( id, updates )).then(() => {
+        const actions = store.getActions();
+        expect(actions[0]).toEqual({
+            type: 'EDIT_EXPENSE',
+            id, 
+            updates
+        });
+
+        return database.ref(`expenses/${id}`).once('value');
+    }).then((snapshot) => {
+        // firebase doesnt send back key.. 
+        expect(snapshot.val().amount).toBe(updates.amount);
+        expect(snapshot.val().note).toBe(updates.note);
+        done();
+    });
+});
